@@ -87,14 +87,15 @@ st.markdown(
         -webkit-backdrop-filter: blur(14px) saturate(140%);
         border: 1px solid rgba(255, 255, 255, 0.78);
         border-radius: 999px;
-        color: var(--market-ink);
+        color: #fff;
         font-weight: 800;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
         box-shadow: 0 8px 26px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.55);
     }
     .st-key-market_hero div[data-testid="stButton"] > button:hover {
         background: rgba(255, 255, 255, 0.38);
         border-color: #fff;
-        color: var(--market-ink);
+        color: #fff;
         transform: translateY(-1px);
     }
     @media (max-width: 640px) {
