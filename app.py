@@ -29,9 +29,11 @@ def_sender = os.getenv("SENDER_EMAIL", "")
 def_pwd = os.getenv("SENDER_PASSWORD", "")
 def_recipient = os.getenv("RECIPIENT_EMAIL", "")
 
-sender_email = st.sidebar.text_input("Sender Email", value=def_sender)
-sender_pwd = st.sidebar.text_input("Sender Gmail App Password", value=def_pwd, type="password")
-recipient_email = st.sidebar.text_input("Recipient Email", value=def_recipient)
+sender_email = st.sidebar.text_input("Sender Email", value=def_sender).strip()
+sender_pwd = "".join(
+    st.sidebar.text_input("Sender Gmail App Password", value=def_pwd, type="password").split()
+)
+recipient_email = st.sidebar.text_input("Recipient Email", value=def_recipient).strip()
 
 # Web Scraping Helper
 def scrape_indian_financial_news() -> str:
@@ -123,6 +125,9 @@ Your Financial Assistant Agent
                         server.ehlo()
                         server.login(sender_email, sender_pwd)
                         server.sendmail(sender_email, recipient_email, msg.as_string())
-                    st.success(f"Email successfully sent to {recipient_email}!")
+                    st.success(
+                        f"Gmail accepted the email for delivery to {recipient_email}. "
+                        "Check Spam or Promotions if it is not in the inbox."
+                    )
                 except Exception as e:
                     st.error(f"Failed to send email. Error: {e}")
