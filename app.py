@@ -48,12 +48,9 @@ st.markdown(
     [data-testid="stSidebar"] * { color: var(--market-ink); }
     h1, h2, h3 { font-family: Georgia, "Times New Roman", serif !important; }
     h1 { color: var(--market-ink) !important; }
-    .market-hero {
+    .st-key-market_hero {
         min-height: clamp(440px, 68vh, 760px);
         box-sizing: border-box;
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-end;
         padding: clamp(1.5rem, 5vw, 4rem);
         color: #fff;
         background-image:
@@ -65,11 +62,18 @@ st.markdown(
         background-repeat: no-repeat;
         border-bottom: 4px solid var(--market-gold);
     }
-    .hero-kicker { color: #f0c85d; font: 700 0.8rem "Courier New", monospace; text-transform: uppercase; }
-    .hero-title { margin: 0.8rem 0 0.3rem; color: white; font: 700 clamp(2.5rem, 6vw, 5rem) Georgia, "Times New Roman", serif; }
-    .market-hero h1 { color: #fff !important; }
-    .hero-subtitle { color: #f1eee1; font: 1rem "Courier New", monospace; }
-    .hero-credit { color: #586760; font-size: 0.75rem; margin-top: 0.4rem; }
+    .st-key-market_hero div[data-testid="stButton"] > button {
+        background: var(--market-gold);
+        border: 1px solid #fff;
+        color: var(--market-ink);
+        font-weight: 800;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+    }
+    .st-key-market_hero div[data-testid="stButton"] > button:hover {
+        background: white;
+        border-color: white;
+        color: var(--market-ink);
+    }
     .market-kicker {
         color: var(--market-green);
         font: 700 0.76rem "Courier New", monospace;
@@ -103,16 +107,8 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown(
-    """
-    <section class="market-hero">
-        <div class="hero-kicker">India equities / period-inspired edition</div>
-        <h1 class="hero-title">The Market Shop</h1>
-        <div class="hero-subtitle">Bombay, 1992 // THE BIG BULL YEARS</div>
-    </section>
-    """,
-    unsafe_allow_html=True,
-)
+with st.container(key="market_hero"):
+    generate_clicked = st.button("Generate Stock Recommendation", type="primary")
 st.markdown('<div class="market-rule"></div>', unsafe_allow_html=True)
 st.markdown('<div class="market-note">Today\'s financial headlines, tuned into one stock to watch.</div>', unsafe_allow_html=True)
 
@@ -213,7 +209,7 @@ else:
     stock_agent = None
 
 # Trigger Execution
-if st.button("Generate Stock Recommendation", type="primary"):
+if generate_clicked:
     if not stock_agent:
         st.error("Agent is not initialized due to missing API Key.")
     else:
