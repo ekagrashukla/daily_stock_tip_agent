@@ -24,10 +24,9 @@ st.sidebar.header("Configuration")
 sarvam_api_key = os.getenv("SARVAM_API_KEY", "").strip()
 
 st.sidebar.subheader("Email Dispatch Configuration")
-def_sender = os.getenv("SENDER_EMAIL", "")
 def_recipient = os.getenv("RECIPIENT_EMAIL", "")
 
-sender_email = st.sidebar.text_input("Sender Email", value=def_sender).strip()
+sender_email = os.getenv("SENDER_EMAIL", "").strip()
 sender_pwd = "".join(os.getenv("SENDER_PASSWORD", "").split())
 recipient_email = st.sidebar.text_input("Recipient Email", value=def_recipient).strip()
 
