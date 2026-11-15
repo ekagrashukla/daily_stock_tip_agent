@@ -146,14 +146,10 @@ with st.container(key="market_hero"):
 
 # Sidebar Configuration loading defaults from environment variables securely
 st.sidebar.header("Station Controls")
-selected_provider = st.sidebar.selectbox("AI Provider", ("Sarvam", "Claude", "Groq", "Gemini"))
-
-st.sidebar.subheader("Email Dispatch Configuration")
-def_recipient = os.getenv("RECIPIENT_EMAIL", "")
+st.sidebar.caption("Choose a model and recipient when you generate a stock pick.")
 
 sender_email = os.getenv("SENDER_EMAIL", "").strip()
 sender_pwd = "".join(os.getenv("SENDER_PASSWORD", "").split())
-recipient_email = st.sidebar.text_input("Recipient Email", value=def_recipient).strip()
 
 # Web Scraping Helper
 class StockRecommendation(BaseModel):
@@ -176,10 +172,11 @@ def scrape_indian_financial_news() -> str:
         return f"Error scraping: {str(e)}"
     return "No news available."
 
-# Initialize AI Agent
-if selected_provider == "Sarvam":
-    provider_api_key = os.getenv("SARVAM_API_KEY", "").strip()
-    if provider_api_key:
+def build_stock_agent(provider_name: str):
+    if provider_name == "Sarvam":
+        provider_api_key = os.getenv("SARVAM_API_KEY", "").strip()
+        if not provider_api_key:
+            return None, "SARVAM_API_KEY"
         model = OpenAIChatModel(
             "sarvam-105b",
             provider=OpenAIProvider(
@@ -187,23 +184,19 @@ if selected_provider == "Sarvam":
                 api_key=provider_api_key,
             ),
         )
-    else:
-        model = None
-        st.warning("Configure SARVAM_API_KEY in the server environment or Streamlit Secrets.")
-elif selected_provider == "Claude":
-    provider_api_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
-    if provider_api_key:
+    elif provider_name == "Claude":
+        provider_api_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
+        if not provider_api_key:
+            return None, "ANTHROPIC_API_KEY"
         claude_model_name = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-5-5").strip()
         model = AnthropicModel(
             claude_model_name,
             provider=AnthropicProvider(api_key=provider_api_key),
         )
-    else:
-        model = None
-        st.warning("Configure ANTHROPIC_API_KEY in the server environment or Streamlit Secrets.")
-elif selected_provider == "Groq":
-    provider_api_key = os.getenv("GROQ_API_KEY", "").strip()
-    if provider_api_key:
+    elif provider_name == "Groq":
+        provider_api_key = os.getenv("GROQ_API_KEY", "").strip()
+        if not provider_api_key:
+            return None, "GROQ_API_KEY"
         groq_model_name = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b").strip()
         model = OpenAIChatModel(
             groq_model_name,
@@ -213,60 +206,76 @@ elif selected_provider == "Groq":
             ),
         )
     else:
-        model = None
-        st.warning("Configure GROQ_API_KEY in the server environment or Streamlit Secrets.")
-else:
-    provider_api_key = os.getenv("GOOGLE_API_KEY", "").strip()
-    if provider_api_key:
+        provider_api_key = os.getenv("GOOGLE_API_KEY", "").strip()
+        if not provider_api_key:
+            return None, "GOOGLE_API_KEY"
         gemini_model_name = os.getenv("GEMINI_MODEL", "gemini-3.8-flash").strip()
         model = GoogleModel(
             gemini_model_name,
             provider=GoogleProvider(api_key=provider_api_key),
         )
-    else:
-        model = None
-        st.warning("Configure GOOGLE_API_KEY in the server environment or Streamlit Secrets.")
 
-if model:
-    stock_agent = Agent(
+    return Agent(
         model,
         output_type=StockRecommendation,
         instructions=(
             "You are an Indian stock analyst. Return one Indian-listed stock to watch and a concise "
             "description based only on the supplied financial-news headlines. Do not invent supporting news. "
             "If the headlines are insufficient, say so in the description."
-        )
-    )
-else:
-    stock_agent = None
+        ),
+    ), None
 
-# Trigger Execution
+
+@st.dialog("Generate a stock pick", width="small")
+def generation_dialog():
+    with st.form("generation_options"):
+        selected_provider = st.selectbox("AI model", ("Sarvam", "Claude", "Groq", "Gemini"))
+        recipient_email = st.text_input(
+            "Recipient email",
+            value=st.session_state.get("recipient_email", os.getenv("RECIPIENT_EMAIL", "")),
+        ).strip()
+        submitted = st.form_submit_button("Generate recommendation", type="primary")
+
+    if not submitted:
+        return
+    if not recipient_email:
+        st.error("Enter a recipient email to continue.")
+        return
+
+    stock_agent, missing_key = build_stock_agent(selected_provider)
+    if stock_agent is None:
+        st.error(f"Configure {missing_key} in the server environment or Streamlit Secrets.")
+        return
+
+    with st.spinner("Fetching financial headlines..."):
+        headlines = scrape_indian_financial_news()
+
+    if headlines == "No news available." or headlines.startswith("Error scraping:"):
+        st.error(f"Could not fetch financial headlines: {headlines}")
+        return
+
+    st.session_state["headlines"] = [line.strip() for line in headlines.splitlines() if line.strip()]
+    try:
+        with st.spinner(f"Analyzing headlines with {selected_provider}..."):
+            result = stock_agent.run_sync(
+                f"Recommend one stock to watch based only on these headlines:\n{headlines}",
+                model_settings={
+                    "max_tokens": 512,
+                    "timeout": 45,
+                    "request_timeout": 45,
+                },
+                timeout=60,
+            )
+        st.session_state["recommendation"] = result.output
+        st.session_state["recipient_email"] = recipient_email
+        st.session_state["selected_provider"] = selected_provider
+        st.rerun()
+    except Exception as e:
+        st.error(f"Error generating recommendation: {e}")
+
+
 if generate_clicked:
-    if not stock_agent:
-        st.error("Agent is not initialized due to missing API Key.")
-    else:
-        with st.spinner("Fetching financial headlines..."):
-            headlines = scrape_indian_financial_news()
-
-        if headlines == "No news available." or headlines.startswith("Error scraping:"):
-            st.error(f"Could not fetch financial headlines: {headlines}")
-        else:
-            st.session_state['headlines'] = [line.strip() for line in headlines.splitlines() if line.strip()]
-            try:
-                with st.spinner(f"Analyzing headlines with {selected_provider}..."):
-                    result = stock_agent.run_sync(
-                        f"Recommend one stock to watch based only on these headlines:\n{headlines}",
-                        model_settings={
-                            "max_tokens": 512,
-                            "timeout": 45,
-                            "request_timeout": 45,
-                        },
-                        timeout=60,
-                    )
-                    st.session_state['recommendation'] = result.output
-                st.success("Recommendation Generated!")
-            except Exception as e:
-                st.error(f"Error generating recommendation: {e}")
+    generation_dialog()
 
 # Show recommendation if exists
 if 'headlines' in st.session_state:
@@ -287,6 +296,7 @@ if (
 
 if 'recommendation' in st.session_state:
     recommendation = st.session_state['recommendation']
+    recipient_email = st.session_state.get("recipient_email", "")
     with st.container(border=True):
         st.markdown('<div class="on-air-label">Now playing / stock pick</div>', unsafe_allow_html=True)
         st.subheader(recommendation.stock_name)
