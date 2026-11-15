@@ -104,10 +104,9 @@ else:
 if model:
     stock_agent = Agent(
         model,
-        tools=[scrape_indian_financial_news],
         instructions=(
-            "You are an Indian Stock Analyst. Call scrape_indian_financial_news once. "
-            "Provide a one-sentence recommendation of one stock to watch based ONLY on the headings found."
+            "You are an Indian stock analyst. Recommend one stock to watch in one cautious sentence, "
+            "based only on the supplied financial-news headlines. If they are insufficient, say so."
         )
     )
 else:
@@ -118,13 +117,20 @@ if st.button("Generate Stock Recommendation", type="primary"):
     if not stock_agent:
         st.error("Agent is not initialized due to missing API Key.")
     else:
-        with st.spinner("Scraping news and running analysis..."):
+        with st.spinner("Fetching financial headlines..."):
+            headlines = scrape_indian_financial_news()
+
+        if headlines == "No news available." or headlines.startswith("Error scraping:"):
+            st.error(f"Could not fetch financial headlines: {headlines}")
+        else:
             try:
-                result = stock_agent.run_sync(
-                    "Find news and recommend a stock in a single short sentence.",
-                    model_settings={"max_tokens": 2048}
-                )
-                st.session_state['recommendation'] = result.output
+                with st.spinner(f"Analyzing headlines with {selected_provider}..."):
+                    result = stock_agent.run_sync(
+                        f"Recommend one stock to watch based only on these headlines:\n{headlines}",
+                        model_settings={"max_tokens": 512, "timeout": 60},
+                        timeout=60,
+                    )
+                    st.session_state['recommendation'] = result.output
                 st.success("Recommendation Generated!")
             except Exception as e:
                 st.error(f"Error generating recommendation: {e}")
