@@ -250,9 +250,6 @@ def generation_dialog():
                 if headlines == "No news available." or headlines.startswith("Error scraping:"):
                     st.error(f"Could not fetch financial headlines: {headlines}")
                 else:
-                    st.session_state["headlines"] = [
-                        line.strip() for line in headlines.splitlines() if line.strip()
-                    ]
                     try:
                         with st.spinner(f"Analyzing headlines with {selected_provider}..."):
                             result = stock_agent.run_sync(
@@ -277,11 +274,7 @@ def generation_dialog():
         and isinstance(recommendation.get("description"), str)
     ):
         st.divider()
-        st.markdown("**Today’s headlines**")
-        for index, headline in enumerate(st.session_state.get("headlines", []), start=1):
-            st.caption(f"{index:02d}  {headline}")
-
-        st.markdown('<div class="on-air-label">Now playing / stock pick</div>', unsafe_allow_html=True)
+        st.markdown('<div class="on-air-label">Stock pick</div>', unsafe_allow_html=True)
         st.subheader(recommendation["stock_name"])
         st.markdown("**Why it made the rotation**")
         st.write(recommendation["description"])
