@@ -1,3 +1,4 @@
+import base64
 import os
 import streamlit as st
 import requests
@@ -6,6 +7,7 @@ import smtplib
 import ssl
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from pathlib import Path
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 from pydantic_ai.models.anthropic import AnthropicModel
@@ -18,6 +20,9 @@ from dotenv import load_dotenv
 
 # Load variables from .env file
 load_dotenv()
+market_background = base64.b64encode(
+    (Path(__file__).resolve().parent / "assets" / "big-bull-bombay-market-rising.png").read_bytes()
+).decode("ascii")
 
 # Page Configuration
 st.set_page_config(page_title="The Market Shop", page_icon="📻", layout="wide")
@@ -44,23 +49,25 @@ st.markdown(
     h1, h2, h3 { font-family: Georgia, "Times New Roman", serif !important; }
     h1 { color: var(--market-ink) !important; }
     .market-hero {
-        min-height: 390px;
+        min-height: clamp(440px, 68vh, 760px);
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
         justify-content: flex-end;
-        padding: clamp(2rem, 6vw, 5rem);
+        padding: clamp(1.5rem, 5vw, 4rem);
         color: #fff;
         background-image:
-            linear-gradient(90deg, rgba(12, 19, 20, 0.9), rgba(12, 19, 20, 0.32) 68%, rgba(12, 19, 20, 0.55)),
-            linear-gradient(0deg, rgba(12, 19, 20, 0.52), transparent 70%),
-            url("https://upload.wikimedia.org/wikipedia/commons/b/ba/Bombay_Stock_Exchange_1.jpg");
+            linear-gradient(90deg, rgba(9, 15, 17, 0.65) 0%, rgba(9, 15, 17, 0.24) 58%, rgba(9, 15, 17, 0.12) 100%),
+            linear-gradient(0deg, rgba(9, 15, 17, 0.78) 0%, rgba(9, 15, 17, 0.08) 68%),
+            url("data:image/png;base64,__MARKET_BACKGROUND__");
         background-size: cover;
-        background-position: center 24%;
+        background-position: center center;
+        background-repeat: no-repeat;
         border-bottom: 4px solid var(--market-gold);
     }
     .hero-kicker { color: #f0c85d; font: 700 0.8rem "Courier New", monospace; text-transform: uppercase; }
     .hero-title { margin: 0.8rem 0 0.3rem; color: white; font: 700 clamp(2.5rem, 6vw, 5rem) Georgia, "Times New Roman", serif; }
+    .market-hero h1 { color: #fff !important; }
     .hero-subtitle { color: #f1eee1; font: 1rem "Courier New", monospace; }
     .hero-credit { color: #586760; font-size: 0.75rem; margin-top: 0.4rem; }
     .market-kicker {
@@ -92,7 +99,7 @@ st.markdown(
     }
     .stButton > button[kind="primary"]:hover { background: var(--market-ink); border-color: var(--market-ink); }
     </style>
-    """,
+    """.replace("__MARKET_BACKGROUND__", market_background),
     unsafe_allow_html=True,
 )
 
@@ -104,12 +111,6 @@ st.markdown(
         <div class="hero-subtitle">Bombay, 1992 // THE BIG BULL YEARS</div>
     </section>
     """,
-    unsafe_allow_html=True,
-)
-st.markdown(
-    '<div class="hero-credit">Background photo: AroundTheGlobe, 2011, '
-    '<a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank">CC BY-SA 3.0</a> '
-    '· <a href="https://commons.wikimedia.org/wiki/File:Bombay_Stock_Exchange_1.jpg" target="_blank">Wikimedia Commons</a></div>',
     unsafe_allow_html=True,
 )
 st.markdown('<div class="market-rule"></div>', unsafe_allow_html=True)
