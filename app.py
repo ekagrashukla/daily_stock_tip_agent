@@ -21,18 +21,14 @@ st.write("Scrape the latest financial headlines, analyze them using AI, and emai
 
 # Sidebar Configuration loading defaults from environment variables securely
 st.sidebar.header("Configuration")
-def_api_key = os.getenv("SARVAM_API_KEY", "")
-sarvam_api_key = st.sidebar.text_input("Sarvam API Key", value=def_api_key, type="password")
+sarvam_api_key = os.getenv("SARVAM_API_KEY", "").strip()
 
 st.sidebar.subheader("Email Dispatch Configuration")
 def_sender = os.getenv("SENDER_EMAIL", "")
-def_pwd = os.getenv("SENDER_PASSWORD", "")
 def_recipient = os.getenv("RECIPIENT_EMAIL", "")
 
 sender_email = st.sidebar.text_input("Sender Email", value=def_sender).strip()
-sender_pwd = "".join(
-    st.sidebar.text_input("Sender Gmail App Password", value=def_pwd, type="password").split()
-)
+sender_pwd = "".join(os.getenv("SENDER_PASSWORD", "").split())
 recipient_email = st.sidebar.text_input("Recipient Email", value=def_recipient).strip()
 
 # Web Scraping Helper
@@ -69,7 +65,7 @@ if sarvam_api_key:
         )
     )
 else:
-    st.warning("Please provide a valid Sarvam API key in the sidebar.")
+    st.warning("Configure SARVAM_API_KEY in the server environment or Streamlit Secrets.")
     stock_agent = None
 
 # Trigger Execution
