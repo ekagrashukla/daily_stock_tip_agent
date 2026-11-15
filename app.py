@@ -127,7 +127,11 @@ if st.button("Generate Stock Recommendation", type="primary"):
                 with st.spinner(f"Analyzing headlines with {selected_provider}..."):
                     result = stock_agent.run_sync(
                         f"Recommend one stock to watch based only on these headlines:\n{headlines}",
-                        model_settings={"max_tokens": 512, "timeout": 60},
+                        model_settings={
+                            "max_tokens": 512,
+                            "timeout": 45,
+                            "request_timeout": 45,
+                        },
                         timeout=60,
                     )
                     st.session_state['recommendation'] = result.output
