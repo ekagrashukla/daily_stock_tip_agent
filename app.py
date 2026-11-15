@@ -260,7 +260,7 @@ def generation_dialog():
             result = stock_agent.run_sync(
                 f"Recommend one stock to watch based only on these headlines:\n{headlines}",
                 model_settings={
-                    "max_tokens": 4096,
+                    "max_tokens": 4096 if selected_provider == "Gemini" else 2048,
                     "timeout": 45,
                     "request_timeout": 45,
                 },
