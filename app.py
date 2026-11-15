@@ -3,12 +3,14 @@ import os
 import streamlit as st
 import requests
 from bs4 import BeautifulSoup
+from concurrent.futures import ThreadPoolExecutor
 import smtplib
 import ssl
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pathlib import Path
 from pydantic import BaseModel, Field
+from xml.etree import ElementTree
 from pydantic_ai import Agent
 from pydantic_ai.models.anthropic import AnthropicModel
 from pydantic_ai.models.google import GoogleModel
@@ -158,19 +160,79 @@ class StockRecommendation(BaseModel):
 
 
 def scrape_indian_financial_news() -> str:
-    url = "https://www.livemint.com/market/stock-market-news"
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+        "User-Agent": "MarketShop/1.0 (financial headline reader)",
     }
+    feeds = (
+        ("Mint", "https://www.livemint.com/rss/markets"),
+        ("Economic Times", "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms"),
+        ("Business Standard", "https://www.business-standard.com/rss/markets-106.rss"),
+        ("Hindu BusinessLine", "https://www.thehindubusinessline.com/markets/feeder/default.rss"),
+        ("CNBC-TV18", "https://www.cnbctv18.com/commonfeeds/v1/cne/rss/market.xml"),
+        ("NDTV Profit", "https://feeds.feedburner.com/ndtvprofit-latest"),
+        ("Times of India", "https://timesofindia.indiatimes.com/rssfeeds/1898055.cms"),
+        ("News18", "https://www.news18.com/commonfeeds/v1/eng/rss/business.xml"),
+    )
+    market_terms = (
+        "market", "stock", "share", "sensex", "nifty", "ipo", "equity",
+        "invest", "finance", "rupee", "earnings", "bank", "gold", "bond",
+    )
+
+    def is_relevant(source: str, title: str, link: str) -> bool:
+        if source in {"NDTV Profit", "News18"} and "/markets/" in link.lower():
+            return True
+        searchable = f"{title} {link}".casefold()
+        return any(term in searchable for term in market_terms)
+
+    def fetch_feed(feed: tuple[str, str]) -> list[str]:
+        source, url = feed
+        try:
+            response = requests.get(url, headers=headers, timeout=8)
+            response.raise_for_status()
+            root = ElementTree.fromstring(response.content)
+        except (requests.RequestException, ElementTree.ParseError):
+            return []
+
+        items = root.findall("./channel/item")
+        source_headlines = []
+        for item in items:
+            title = (item.findtext("title") or "").strip()
+            link = (item.findtext("link") or "").strip()
+            if title and is_relevant(source, title, link):
+                source_headlines.append(f"[{source}] {title}")
+                if len(source_headlines) == 2:
+                    break
+        return source_headlines
+
+    headlines = []
+    seen_titles = set()
+    with ThreadPoolExecutor(max_workers=len(feeds)) as executor:
+        for source_headlines in executor.map(fetch_feed, feeds):
+            for headline in source_headlines:
+                title_key = " ".join(headline.split("] ", 1)[-1].casefold().split())
+                if title_key not in seen_titles:
+                    seen_titles.add(title_key)
+                    headlines.append(headline)
+
+    if headlines:
+        return "\n".join(headlines)
+
     try:
-        response = requests.get(url, headers=headers, timeout=10)
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.text, 'html.parser')
-            headings = [h.get_text().strip() for h in soup.find_all(['h1', 'h2', 'h3']) if len(h.get_text().strip()) > 15][:3]
-            return "\n".join(headings)
-    except Exception as e:
-        return f"Error scraping: {str(e)}"
-    return "No news available."
+        response = requests.get(
+            "https://www.livemint.com/market/stock-market-news",
+            headers=headers,
+            timeout=8,
+        )
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "html.parser")
+        fallback_headlines = [
+            heading.get_text(" ", strip=True)
+            for heading in soup.find_all(["h1", "h2", "h3"])
+            if len(heading.get_text(strip=True)) > 15
+        ][:3]
+        return "\n".join(f"[Mint] {headline}" for headline in fallback_headlines) or "No news available."
+    except requests.RequestException:
+        return "No news available."
 
 def build_stock_agent(provider_name: str):
     if provider_name == "Sarvam":
