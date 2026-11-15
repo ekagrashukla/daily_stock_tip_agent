@@ -7,7 +7,9 @@ import ssl
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pydantic_ai import Agent
+from pydantic_ai.models.anthropic import AnthropicModel
 from pydantic_ai.models.openai import OpenAIChatModel
+from pydantic_ai.providers.anthropic import AnthropicProvider
 from pydantic_ai.providers.openai import OpenAIProvider
 from dotenv import load_dotenv
 
@@ -21,7 +23,7 @@ st.write("Scrape the latest financial headlines, analyze them using AI, and emai
 
 # Sidebar Configuration loading defaults from environment variables securely
 st.sidebar.header("Configuration")
-sarvam_api_key = os.getenv("SARVAM_API_KEY", "").strip()
+selected_provider = st.sidebar.selectbox("AI Provider", ("Sarvam", "Claude"))
 
 st.sidebar.subheader("Email Dispatch Configuration")
 def_recipient = os.getenv("RECIPIENT_EMAIL", "")
@@ -47,14 +49,32 @@ def scrape_indian_financial_news() -> str:
     return "No news available."
 
 # Initialize AI Agent
-if sarvam_api_key:
-    model = OpenAIChatModel(
-        "sarvam-105b",
-        provider=OpenAIProvider(
-            base_url="https://api.sarvam.ai/v1",
-            api_key=sarvam_api_key,
-        ),
-    )
+if selected_provider == "Sarvam":
+    provider_api_key = os.getenv("SARVAM_API_KEY", "").strip()
+    if provider_api_key:
+        model = OpenAIChatModel(
+            "sarvam-105b",
+            provider=OpenAIProvider(
+                base_url="https://api.sarvam.ai/v1",
+                api_key=provider_api_key,
+            ),
+        )
+    else:
+        model = None
+        st.warning("Configure SARVAM_API_KEY in the server environment or Streamlit Secrets.")
+else:
+    provider_api_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
+    if provider_api_key:
+        claude_model_name = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-5-5").strip()
+        model = AnthropicModel(
+            claude_model_name,
+            provider=AnthropicProvider(api_key=provider_api_key),
+        )
+    else:
+        model = None
+        st.warning("Configure ANTHROPIC_API_KEY in the server environment or Streamlit Secrets.")
+
+if model:
     stock_agent = Agent(
         model,
         tools=[scrape_indian_financial_news],
@@ -64,7 +84,6 @@ if sarvam_api_key:
         )
     )
 else:
-    st.warning("Configure SARVAM_API_KEY in the server environment or Streamlit Secrets.")
     stock_agent = None
 
 # Trigger Execution
