@@ -35,7 +35,7 @@ st.markdown(
     }
     .stApp { background: var(--market-paper); color: var(--market-ink); }
     [data-testid="stHeader"] { background: transparent; }
-    .block-container { max-width: 1120px; padding-top: 2.2rem; }
+    .block-container { max-width: 1240px; padding: 0 1.2rem 3rem; }
     [data-testid="stSidebar"] {
         background: #e9eeea;
         border-right: 1px solid var(--market-line);
@@ -43,6 +43,26 @@ st.markdown(
     [data-testid="stSidebar"] * { color: var(--market-ink); }
     h1, h2, h3 { font-family: Georgia, "Times New Roman", serif !important; }
     h1 { color: var(--market-ink) !important; }
+    .market-hero {
+        min-height: 390px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: clamp(2rem, 6vw, 5rem);
+        color: #fff;
+        background-image:
+            linear-gradient(90deg, rgba(12, 19, 20, 0.9), rgba(12, 19, 20, 0.32) 68%, rgba(12, 19, 20, 0.55)),
+            linear-gradient(0deg, rgba(12, 19, 20, 0.52), transparent 70%),
+            url("https://upload.wikimedia.org/wikipedia/commons/b/ba/Bombay_Stock_Exchange_1.jpg");
+        background-size: cover;
+        background-position: center 24%;
+        border-bottom: 4px solid var(--market-gold);
+    }
+    .hero-kicker { color: #f0c85d; font: 700 0.8rem "Courier New", monospace; text-transform: uppercase; }
+    .hero-title { margin: 0.8rem 0 0.3rem; color: white; font: 700 clamp(2.5rem, 6vw, 5rem) Georgia, "Times New Roman", serif; }
+    .hero-subtitle { color: #f1eee1; font: 1rem "Courier New", monospace; }
+    .hero-credit { color: #586760; font-size: 0.75rem; margin-top: 0.4rem; }
     .market-kicker {
         color: var(--market-green);
         font: 700 0.76rem "Courier New", monospace;
@@ -76,14 +96,22 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-pole_column, title_column, station_column = st.columns([0.35, 4, 1.2], vertical_alignment="center")
-with pole_column:
-    st.markdown('<div class="barber-pole"></div>', unsafe_allow_html=True)
-with title_column:
-    st.markdown('<div class="market-kicker">India Equities / Daily Rotation</div>', unsafe_allow_html=True)
-    st.title("The Market Shop")
-with station_column:
-    st.markdown('<div class="station-stamp">ON AIR<br>BSE / 01</div>', unsafe_allow_html=True)
+st.markdown(
+    """
+    <section class="market-hero">
+        <div class="hero-kicker">India equities / period-inspired edition</div>
+        <h1 class="hero-title">The Market Shop</h1>
+        <div class="hero-subtitle">Bombay, 1992 // THE BIG BULL YEARS</div>
+    </section>
+    """,
+    unsafe_allow_html=True,
+)
+st.markdown(
+    '<div class="hero-credit">Background photo: AroundTheGlobe, 2011, '
+    '<a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank">CC BY-SA 3.0</a> '
+    '· <a href="https://commons.wikimedia.org/wiki/File:Bombay_Stock_Exchange_1.jpg" target="_blank">Wikimedia Commons</a></div>',
+    unsafe_allow_html=True,
+)
 st.markdown('<div class="market-rule"></div>', unsafe_allow_html=True)
 st.markdown('<div class="market-note">Today\'s financial headlines, tuned into one stock to watch.</div>', unsafe_allow_html=True)
 
