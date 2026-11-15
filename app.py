@@ -20,23 +20,24 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Page Configuration
-st.set_page_config(page_title="Market Bell", page_icon="📊", layout="wide")
+st.set_page_config(page_title="The Market Shop", page_icon="📻", layout="wide")
 st.markdown(
     """
     <style>
     :root {
-        --market-ink: #19332c;
-        --market-paper: #f2f5f1;
-        --market-green: #24765d;
-        --market-gold: #d7a62c;
-        --market-red: #b65042;
-        --market-line: #d8e1db;
+        --market-ink: #202b2a;
+        --market-paper: #f4f6f2;
+        --market-green: #2d7158;
+        --market-gold: #c99a35;
+        --market-red: #bd4941;
+        --market-blue: #456873;
+        --market-line: #d8e0db;
     }
     .stApp { background: var(--market-paper); color: var(--market-ink); }
     [data-testid="stHeader"] { background: transparent; }
     .block-container { max-width: 1120px; padding-top: 2.2rem; }
     [data-testid="stSidebar"] {
-        background: #e8eee9;
+        background: #e9eeea;
         border-right: 1px solid var(--market-line);
     }
     [data-testid="stSidebar"] * { color: var(--market-ink); }
@@ -48,8 +49,21 @@ st.markdown(
         letter-spacing: 0.08em;
         text-transform: uppercase;
     }
-    .market-rule { border-top: 3px solid var(--market-green); margin: 0.6rem 0 1.2rem; }
+    .barber-pole {
+        width: 18px;
+        height: 46px;
+        border: 1px solid #c8d0ca;
+        background: repeating-linear-gradient(135deg, var(--market-red) 0 7px, white 7px 14px, var(--market-blue) 14px 21px);
+    }
+    .station-stamp {
+        color: var(--market-red);
+        font: 700 0.75rem "Courier New", monospace;
+        text-align: right;
+    }
+    .market-rule { border-top: 2px solid var(--market-green); margin: 0.6rem 0 1.2rem; }
     .market-note { color: #53675f; font-size: 0.96rem; }
+    .track-index { color: var(--market-red); font: 700 0.9rem "Courier New", monospace; }
+    .on-air-label { color: var(--market-red); font: 700 0.76rem "Courier New", monospace; text-transform: uppercase; }
     .stButton > button[kind="primary"] {
         background: var(--market-green);
         border: 1px solid var(--market-green);
@@ -62,13 +76,19 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown('<div class="market-kicker">India Equities / Daily Brief</div>', unsafe_allow_html=True)
-st.title("Market Bell")
+pole_column, title_column, station_column = st.columns([0.35, 4, 1.2], vertical_alignment="center")
+with pole_column:
+    st.markdown('<div class="barber-pole"></div>', unsafe_allow_html=True)
+with title_column:
+    st.markdown('<div class="market-kicker">India Equities / Daily Rotation</div>', unsafe_allow_html=True)
+    st.title("The Market Shop")
+with station_column:
+    st.markdown('<div class="station-stamp">ON AIR<br>BSE / 01</div>', unsafe_allow_html=True)
 st.markdown('<div class="market-rule"></div>', unsafe_allow_html=True)
-st.markdown('<div class="market-note">Headlines in. A watchlist idea out.</div>', unsafe_allow_html=True)
+st.markdown('<div class="market-note">Today\'s financial headlines, tuned into one stock to watch.</div>', unsafe_allow_html=True)
 
 # Sidebar Configuration loading defaults from environment variables securely
-st.sidebar.header("Configuration")
+st.sidebar.header("Station Controls")
 selected_provider = st.sidebar.selectbox("AI Provider", ("Sarvam", "Claude", "Groq", "Gemini"))
 
 st.sidebar.subheader("Email Dispatch Configuration")
@@ -174,6 +194,7 @@ if st.button("Generate Stock Recommendation", type="primary"):
         if headlines == "No news available." or headlines.startswith("Error scraping:"):
             st.error(f"Could not fetch financial headlines: {headlines}")
         else:
+            st.session_state['headlines'] = [line.strip() for line in headlines.splitlines() if line.strip()]
             try:
                 with st.spinner(f"Analyzing headlines with {selected_provider}..."):
                     result = stock_agent.run_sync(
@@ -191,6 +212,16 @@ if st.button("Generate Stock Recommendation", type="primary"):
                 st.error(f"Error generating recommendation: {e}")
 
 # Show recommendation if exists
+if 'headlines' in st.session_state:
+    st.markdown('<div class="market-kicker">Today\'s rotation / headlines</div>', unsafe_allow_html=True)
+    for index, headline in enumerate(st.session_state['headlines'], start=1):
+        with st.container(border=True):
+            number_column, headline_column = st.columns([0.35, 5])
+            with number_column:
+                st.markdown(f'<div class="track-index">{index:02d}</div>', unsafe_allow_html=True)
+            with headline_column:
+                st.write(headline)
+
 if (
     'recommendation' in st.session_state
     and not isinstance(st.session_state['recommendation'], StockRecommendation)
@@ -199,10 +230,11 @@ if (
 
 if 'recommendation' in st.session_state:
     recommendation = st.session_state['recommendation']
-    st.markdown('<div class="market-kicker">Stock to watch</div>', unsafe_allow_html=True)
-    st.header(recommendation.stock_name)
-    st.markdown("**Why it is on the watchlist**")
-    st.write(recommendation.description)
+    with st.container(border=True):
+        st.markdown('<div class="on-air-label">Now playing / stock pick</div>', unsafe_allow_html=True)
+        st.subheader(recommendation.stock_name)
+        st.markdown("**Why it made the rotation**")
+        st.write(recommendation.description)
 
     # Send Email Option
     if st.button("Send Email Report"):
