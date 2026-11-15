@@ -49,9 +49,10 @@ st.markdown(
     h1, h2, h3 { font-family: Georgia, "Times New Roman", serif !important; }
     h1 { color: var(--market-ink) !important; }
     .st-key-market_hero {
+        position: relative;
         min-height: clamp(440px, 68vh, 760px);
         box-sizing: border-box;
-        padding: clamp(1.5rem, 5vw, 4rem);
+        padding: 0;
         color: #fff;
         background-image:
             linear-gradient(90deg, rgba(9, 15, 17, 0.65) 0%, rgba(9, 15, 17, 0.24) 58%, rgba(9, 15, 17, 0.12) 100%),
@@ -62,17 +63,41 @@ st.markdown(
         background-repeat: no-repeat;
         border-bottom: 4px solid var(--market-gold);
     }
+    .st-key-market_hero div[data-testid="stButton"] {
+        position: absolute;
+        top: 70%;
+        left: 50%;
+        width: max-content;
+        transform: translate(-50%, -50%);
+        z-index: 2;
+    }
     .st-key-market_hero div[data-testid="stButton"] > button {
-        background: var(--market-gold);
-        border: 1px solid #fff;
+        width: auto;
+        min-height: 3.2rem;
+        padding: 0.25rem 1.8rem;
+        background: rgba(248, 248, 242, 0.22);
+        backdrop-filter: blur(14px) saturate(140%);
+        -webkit-backdrop-filter: blur(14px) saturate(140%);
+        border: 1px solid rgba(255, 255, 255, 0.78);
+        border-radius: 999px;
         color: var(--market-ink);
         font-weight: 800;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+        box-shadow: 0 8px 26px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.55);
     }
     .st-key-market_hero div[data-testid="stButton"] > button:hover {
-        background: white;
-        border-color: white;
+        background: rgba(255, 255, 255, 0.38);
+        border-color: #fff;
         color: var(--market-ink);
+        transform: translateY(-1px);
+    }
+    @media (max-width: 640px) {
+        .st-key-market_hero { min-height: 62vh; }
+        .st-key-market_hero div[data-testid="stButton"] { top: 72%; }
+        .st-key-market_hero div[data-testid="stButton"] > button {
+            min-height: 2.9rem;
+            padding: 0.2rem 1.1rem;
+            font-size: 0.9rem;
+        }
     }
     .market-kicker {
         color: var(--market-green);
