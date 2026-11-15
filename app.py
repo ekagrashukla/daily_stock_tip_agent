@@ -19,9 +19,67 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Page Configuration
-st.set_page_config(page_title="Indian Stock Advisor", page_icon="📈", layout="centered")
-st.title("📈 Indian Stock Market Analyst & Advisor")
-st.write("Scrape the latest financial headlines, analyze them using AI, and email the recommendations!")
+st.set_page_config(page_title="The Big Bull Market Desk", page_icon="🐂", layout="wide")
+st.markdown(
+    """
+    <style>
+    :root {
+        --market-ink: #171913;
+        --market-paper: #f5edc7;
+        --market-gold: #ffdf36;
+        --market-red: #ed4936;
+        --market-green: #b7ee36;
+    }
+    .stApp { background: var(--market-ink); color: var(--market-paper); }
+    [data-testid="stHeader"] { background: transparent; }
+    .block-container { max-width: 1180px; padding-top: 2rem; }
+    [data-testid="stSidebar"] {
+        background: var(--market-green);
+        border-right: 5px solid var(--market-red);
+    }
+    [data-testid="stSidebar"] * { color: var(--market-ink); }
+    h1, h2, h3 { font-family: Georgia, "Times New Roman", serif !important; }
+    h1 {
+        color: var(--market-gold) !important;
+        text-shadow: 3px 3px 0 var(--market-red);
+        text-transform: uppercase;
+    }
+    .market-ticker {
+        display: inline-block;
+        padding: 7px 12px;
+        margin-bottom: 12px;
+        background: var(--market-gold);
+        border: 3px double var(--market-red);
+        color: var(--market-ink);
+        font: 700 0.85rem "Courier New", monospace;
+    }
+    div[data-testid="stImage"] img {
+        border: 4px solid var(--market-gold);
+        box-shadow: 7px 7px 0 var(--market-red);
+    }
+    .stButton > button[kind="primary"] {
+        background: var(--market-red);
+        border: 2px solid var(--market-gold);
+        box-shadow: 4px 4px 0 var(--market-green);
+        color: white;
+        font-weight: 800;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+photo_column, title_column = st.columns([1, 3], gap="large", vertical_alignment="center")
+with photo_column:
+    st.image("https://upload.wikimedia.org/wikipedia/commons/a/a1/Harshad-Mehta.png", width=190)
+    st.markdown(
+        "[Photo: Soujanya raj, CC BY-SA 4.0](https://commons.wikimedia.org/wiki/File:Harshad-Mehta.png)"
+    )
+with title_column:
+    st.markdown('<div class="market-ticker">BSE // DALAL STREET // BULL RUN WATCH</div>', unsafe_allow_html=True)
+    st.title("The Big Bull")
+    st.subheader("Indian Stock Market Analyst & Advisor")
+    st.write("Fresh headlines. One stock to watch. Full-volume market theatrics.")
 
 # Sidebar Configuration loading defaults from environment variables securely
 st.sidebar.header("Configuration")
