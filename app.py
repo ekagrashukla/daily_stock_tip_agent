@@ -8,8 +8,10 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pydantic_ai import Agent
 from pydantic_ai.models.anthropic import AnthropicModel
+from pydantic_ai.models.google import GoogleModel
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.anthropic import AnthropicProvider
+from pydantic_ai.providers.google import GoogleProvider
 from pydantic_ai.providers.openai import OpenAIProvider
 from dotenv import load_dotenv
 
@@ -23,7 +25,7 @@ st.write("Scrape the latest financial headlines, analyze them using AI, and emai
 
 # Sidebar Configuration loading defaults from environment variables securely
 st.sidebar.header("Configuration")
-selected_provider = st.sidebar.selectbox("AI Provider", ("Sarvam", "Claude", "Groq"))
+selected_provider = st.sidebar.selectbox("AI Provider", ("Sarvam", "Claude", "Groq", "Gemini"))
 
 st.sidebar.subheader("Email Dispatch Configuration")
 def_recipient = os.getenv("RECIPIENT_EMAIL", "")
@@ -73,7 +75,7 @@ elif selected_provider == "Claude":
     else:
         model = None
         st.warning("Configure ANTHROPIC_API_KEY in the server environment or Streamlit Secrets.")
-else:
+elif selected_provider == "Groq":
     provider_api_key = os.getenv("GROQ_API_KEY", "").strip()
     if provider_api_key:
         groq_model_name = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b").strip()
@@ -87,6 +89,17 @@ else:
     else:
         model = None
         st.warning("Configure GROQ_API_KEY in the server environment or Streamlit Secrets.")
+else:
+    provider_api_key = os.getenv("GOOGLE_API_KEY", "").strip()
+    if provider_api_key:
+        gemini_model_name = os.getenv("GEMINI_MODEL", "gemini-3.8-flash").strip()
+        model = GoogleModel(
+            gemini_model_name,
+            provider=GoogleProvider(api_key=provider_api_key),
+        )
+    else:
+        model = None
+        st.warning("Configure GOOGLE_API_KEY in the server environment or Streamlit Secrets.")
 
 if model:
     stock_agent = Agent(
