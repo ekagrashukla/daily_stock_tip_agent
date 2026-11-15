@@ -63,13 +63,20 @@ st.markdown(
         background-repeat: no-repeat;
         border-bottom: 4px solid var(--market-gold);
     }
-    .st-key-market_hero div[data-testid="stButton"] {
+    .st-key-market_hero [data-testid="stElementContainer"]:has([data-testid="stButton"]) {
         position: absolute;
         top: 70%;
         left: 50%;
         width: max-content;
-        transform: translate(-50%, -50%);
+        transform: translateX(-50%);
         z-index: 2;
+    }
+    .st-key-market_hero div[data-testid="stButton"] {
+        position: relative;
+        top: auto;
+        left: auto;
+        width: max-content;
+        transform: none;
     }
     .st-key-market_hero div[data-testid="stButton"] > button {
         width: auto;
@@ -92,7 +99,7 @@ st.markdown(
     }
     @media (max-width: 640px) {
         .st-key-market_hero { min-height: 62vh; }
-        .st-key-market_hero div[data-testid="stButton"] { top: 72%; }
+        .st-key-market_hero [data-testid="stElementContainer"]:has([data-testid="stButton"]) { top: 72%; }
         .st-key-market_hero div[data-testid="stButton"] > button {
             min-height: 2.9rem;
             padding: 0.2rem 1.1rem;
