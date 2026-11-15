@@ -6,7 +6,6 @@ import smtplib
 import ssl
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-import nest_asyncio
 from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openai import OpenAIProvider
@@ -14,9 +13,6 @@ from dotenv import load_dotenv
 
 # Load variables from .env file
 load_dotenv()
-
-# Patch asyncio to avoid event loop conflicts in Streamlit
-nest_asyncio.apply()
 
 # Page Configuration
 st.set_page_config(page_title="Indian Stock Advisor", page_icon="📈", layout="centered")
