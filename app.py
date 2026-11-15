@@ -8,7 +8,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pydantic_ai import Agent
 from pydantic_ai.models.anthropic import AnthropicModel
-from pydantic_ai.models.openai import OpenAIChatModel
+from pydantic_ai.models.openai import OpenAIChatModel, OpenAIResponsesModel
 from pydantic_ai.providers.anthropic import AnthropicProvider
 from pydantic_ai.providers.openai import OpenAIProvider
 from dotenv import load_dotenv
@@ -23,7 +23,7 @@ st.write("Scrape the latest financial headlines, analyze them using AI, and emai
 
 # Sidebar Configuration loading defaults from environment variables securely
 st.sidebar.header("Configuration")
-selected_provider = st.sidebar.selectbox("AI Provider", ("Sarvam", "Claude"))
+selected_provider = st.sidebar.selectbox("AI Provider", ("Sarvam", "Claude", "Grok"))
 
 st.sidebar.subheader("Email Dispatch Configuration")
 def_recipient = os.getenv("RECIPIENT_EMAIL", "")
@@ -62,7 +62,7 @@ if selected_provider == "Sarvam":
     else:
         model = None
         st.warning("Configure SARVAM_API_KEY in the server environment or Streamlit Secrets.")
-else:
+elif selected_provider == "Claude":
     provider_api_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
     if provider_api_key:
         claude_model_name = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-5-5").strip()
@@ -73,6 +73,20 @@ else:
     else:
         model = None
         st.warning("Configure ANTHROPIC_API_KEY in the server environment or Streamlit Secrets.")
+else:
+    provider_api_key = os.getenv("XAI_API_KEY", "").strip()
+    if provider_api_key:
+        grok_model_name = os.getenv("XAI_MODEL", "grok-4.7").strip()
+        model = OpenAIResponsesModel(
+            grok_model_name,
+            provider=OpenAIProvider(
+                base_url="https://api.x.ai/v1",
+                api_key=provider_api_key,
+            ),
+        )
+    else:
+        model = None
+        st.warning("Configure XAI_API_KEY in the server environment or Streamlit Secrets.")
 
 if model:
     stock_agent = Agent(
