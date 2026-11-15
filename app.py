@@ -236,91 +236,68 @@ def generation_dialog():
         ).strip()
         submitted = st.form_submit_button("Generate recommendation", type="primary")
 
-    if not submitted:
-        return
-    if not recipient_email:
-        st.error("Enter a recipient email to continue.")
-        return
+    if submitted:
+        if not recipient_email:
+            st.error("Enter a recipient email to continue.")
+        else:
+            stock_agent, missing_key = build_stock_agent(selected_provider)
+            if stock_agent is None:
+                st.error(f"Configure {missing_key} in the server environment or Streamlit Secrets.")
+            else:
+                with st.spinner("Fetching financial headlines..."):
+                    headlines = scrape_indian_financial_news()
 
-    stock_agent, missing_key = build_stock_agent(selected_provider)
-    if stock_agent is None:
-        st.error(f"Configure {missing_key} in the server environment or Streamlit Secrets.")
-        return
+                if headlines == "No news available." or headlines.startswith("Error scraping:"):
+                    st.error(f"Could not fetch financial headlines: {headlines}")
+                else:
+                    st.session_state["headlines"] = [
+                        line.strip() for line in headlines.splitlines() if line.strip()
+                    ]
+                    try:
+                        with st.spinner(f"Analyzing headlines with {selected_provider}..."):
+                            result = stock_agent.run_sync(
+                                f"Recommend one stock to watch based only on these headlines:\n{headlines}",
+                                model_settings={
+                                    "max_tokens": 4096 if selected_provider == "Gemini" else 2048,
+                                    "timeout": 45,
+                                    "request_timeout": 45,
+                                },
+                                timeout=60,
+                            )
+                        st.session_state["recommendation"] = result.output.model_dump()
+                        st.session_state["recipient_email"] = recipient_email
+                        st.session_state["selected_provider"] = selected_provider
+                    except Exception as e:
+                        st.error(f"Error generating recommendation: {e}")
 
-    with st.spinner("Fetching financial headlines..."):
-        headlines = scrape_indian_financial_news()
+    recommendation = st.session_state.get("recommendation")
+    if (
+        isinstance(recommendation, dict)
+        and isinstance(recommendation.get("stock_name"), str)
+        and isinstance(recommendation.get("description"), str)
+    ):
+        st.divider()
+        st.markdown("**Today’s headlines**")
+        for index, headline in enumerate(st.session_state.get("headlines", []), start=1):
+            st.caption(f"{index:02d}  {headline}")
 
-    if headlines == "No news available." or headlines.startswith("Error scraping:"):
-        st.error(f"Could not fetch financial headlines: {headlines}")
-        return
-
-    st.session_state["headlines"] = [line.strip() for line in headlines.splitlines() if line.strip()]
-    try:
-        with st.spinner(f"Analyzing headlines with {selected_provider}..."):
-            result = stock_agent.run_sync(
-                f"Recommend one stock to watch based only on these headlines:\n{headlines}",
-                model_settings={
-                    "max_tokens": 4096 if selected_provider == "Gemini" else 2048,
-                    "timeout": 45,
-                    "request_timeout": 45,
-                },
-                timeout=60,
-            )
-        st.session_state["recommendation"] = result.output.model_dump()
-        st.session_state["recipient_email"] = recipient_email
-        st.session_state["selected_provider"] = selected_provider
-        st.rerun()
-    except Exception as e:
-        st.error(f"Error generating recommendation: {e}")
-
-
-if generate_clicked:
-    generation_dialog()
-
-# Show recommendation if exists
-if 'headlines' in st.session_state:
-    st.markdown('<div class="market-kicker">Today\'s rotation / headlines</div>', unsafe_allow_html=True)
-    for index, headline in enumerate(st.session_state['headlines'], start=1):
-        with st.container(border=True):
-            number_column, headline_column = st.columns([0.35, 5])
-            with number_column:
-                st.markdown(f'<div class="track-index">{index:02d}</div>', unsafe_allow_html=True)
-            with headline_column:
-                st.write(headline)
-
-recommendation = st.session_state.get("recommendation")
-if not (
-    isinstance(recommendation, dict)
-    and isinstance(recommendation.get("stock_name"), str)
-    and isinstance(recommendation.get("description"), str)
-):
-    st.session_state.pop("recommendation", None)
-
-if "recommendation" in st.session_state:
-    recommendation = st.session_state["recommendation"]
-    recipient_email = st.session_state.get("recipient_email", "")
-    with st.container(border=True):
         st.markdown('<div class="on-air-label">Now playing / stock pick</div>', unsafe_allow_html=True)
         st.subheader(recommendation["stock_name"])
         st.markdown("**Why it made the rotation**")
         st.write(recommendation["description"])
 
-    # Send Email Option
-    if st.button("Send Email Report"):
-        if not sender_email or not sender_pwd or not recipient_email:
-            st.error("Please configure sender/recipient details in the sidebar.")
-        else:
-            with st.spinner("Sending Email..."):
-                # Construct the email content
-                msg = MIMEMultipart()
-                msg['From'] = sender_email
-                msg['To'] = recipient_email
-                msg['Subject'] = "Daily Stock Advisory Recommendation"
-
-                body = f"""\
+        if st.button("Send Email Report", key="send_email_report_dialog"):
+            current_recipient = st.session_state.get("recipient_email", "")
+            if not sender_email or not sender_pwd or not current_recipient:
+                st.error("Email delivery is not fully configured.")
+            else:
+                with st.spinner("Sending Email Report..."):
+                    message = MIMEMultipart()
+                    message["From"] = sender_email
+                    message["To"] = current_recipient
+                    message["Subject"] = "Daily Stock Advisory Recommendation"
+                    body = f"""\
 Hello,
-
-Here is your requested stock recommendation based on the latest Indian financial news:
 
 Stock: {recommendation['stock_name']}
 Why it is on the watchlist: {recommendation['description']}
@@ -328,19 +305,19 @@ Why it is on the watchlist: {recommendation['description']}
 Best regards,
 Your Financial Assistant Agent
 """
-                msg.attach(MIMEText(body, 'plain'))
+                    message.attach(MIMEText(body, "plain"))
+                    try:
+                        context = ssl.create_default_context()
+                        with smtplib.SMTP("smtp.gmail.com", 587, timeout=15) as server:
+                            server.ehlo()
+                            server.starttls(context=context)
+                            server.ehlo()
+                            server.login(sender_email, sender_pwd)
+                            server.sendmail(sender_email, current_recipient, message.as_string())
+                        st.success(f"Gmail accepted the email for delivery to {current_recipient}.")
+                    except Exception as e:
+                        st.error(f"Failed to send email. Error: {e}")
 
-                try:
-                    context = ssl.create_default_context()
-                    with smtplib.SMTP("smtp.gmail.com", 587, timeout=15) as server:
-                        server.ehlo()
-                        server.starttls(context=context)
-                        server.ehlo()
-                        server.login(sender_email, sender_pwd)
-                        server.sendmail(sender_email, recipient_email, msg.as_string())
-                    st.success(
-                        f"Gmail accepted the email for delivery to {recipient_email}. "
-                        "Check Spam or Promotions if it is not in the inbox."
-                    )
-                except Exception as e:
-                    st.error(f"Failed to send email. Error: {e}")
+
+if generate_clicked:
+    generation_dialog()
