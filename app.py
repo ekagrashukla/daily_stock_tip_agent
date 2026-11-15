@@ -266,7 +266,7 @@ def generation_dialog():
                 },
                 timeout=60,
             )
-        st.session_state["recommendation"] = result.output
+        st.session_state["recommendation"] = result.output.model_dump()
         st.session_state["recipient_email"] = recipient_email
         st.session_state["selected_provider"] = selected_provider
         st.rerun()
@@ -288,20 +288,22 @@ if 'headlines' in st.session_state:
             with headline_column:
                 st.write(headline)
 
-if (
-    'recommendation' in st.session_state
-    and not isinstance(st.session_state['recommendation'], StockRecommendation)
+recommendation = st.session_state.get("recommendation")
+if not (
+    isinstance(recommendation, dict)
+    and isinstance(recommendation.get("stock_name"), str)
+    and isinstance(recommendation.get("description"), str)
 ):
-    del st.session_state['recommendation']
+    st.session_state.pop("recommendation", None)
 
-if 'recommendation' in st.session_state:
-    recommendation = st.session_state['recommendation']
+if "recommendation" in st.session_state:
+    recommendation = st.session_state["recommendation"]
     recipient_email = st.session_state.get("recipient_email", "")
     with st.container(border=True):
         st.markdown('<div class="on-air-label">Now playing / stock pick</div>', unsafe_allow_html=True)
-        st.subheader(recommendation.stock_name)
+        st.subheader(recommendation["stock_name"])
         st.markdown("**Why it made the rotation**")
-        st.write(recommendation.description)
+        st.write(recommendation["description"])
 
     # Send Email Option
     if st.button("Send Email Report"):
@@ -320,8 +322,8 @@ Hello,
 
 Here is your requested stock recommendation based on the latest Indian financial news:
 
-Stock: {recommendation.stock_name}
-Why it is on the watchlist: {recommendation.description}
+Stock: {recommendation['stock_name']}
+Why it is on the watchlist: {recommendation['description']}
 
 Best regards,
 Your Financial Assistant Agent
