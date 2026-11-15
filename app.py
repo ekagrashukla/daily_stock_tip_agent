@@ -6,6 +6,7 @@ import smtplib
 import ssl
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 from pydantic_ai.models.anthropic import AnthropicModel
 from pydantic_ai.models.google import GoogleModel
@@ -19,67 +20,52 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Page Configuration
-st.set_page_config(page_title="The Big Bull Market Desk", page_icon="🐂", layout="wide")
+st.set_page_config(page_title="Market Bell", page_icon="📊", layout="wide")
 st.markdown(
     """
     <style>
     :root {
-        --market-ink: #171913;
-        --market-paper: #f5edc7;
-        --market-gold: #ffdf36;
-        --market-red: #ed4936;
-        --market-green: #b7ee36;
+        --market-ink: #19332c;
+        --market-paper: #f2f5f1;
+        --market-green: #24765d;
+        --market-gold: #d7a62c;
+        --market-red: #b65042;
+        --market-line: #d8e1db;
     }
-    .stApp { background: var(--market-ink); color: var(--market-paper); }
+    .stApp { background: var(--market-paper); color: var(--market-ink); }
     [data-testid="stHeader"] { background: transparent; }
-    .block-container { max-width: 1180px; padding-top: 2rem; }
+    .block-container { max-width: 1120px; padding-top: 2.2rem; }
     [data-testid="stSidebar"] {
-        background: var(--market-green);
-        border-right: 5px solid var(--market-red);
+        background: #e8eee9;
+        border-right: 1px solid var(--market-line);
     }
     [data-testid="stSidebar"] * { color: var(--market-ink); }
     h1, h2, h3 { font-family: Georgia, "Times New Roman", serif !important; }
-    h1 {
-        color: var(--market-gold) !important;
-        text-shadow: 3px 3px 0 var(--market-red);
+    h1 { color: var(--market-ink) !important; }
+    .market-kicker {
+        color: var(--market-green);
+        font: 700 0.76rem "Courier New", monospace;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
     }
-    .market-ticker {
-        display: inline-block;
-        padding: 7px 12px;
-        margin-bottom: 12px;
-        background: var(--market-gold);
-        border: 3px double var(--market-red);
-        color: var(--market-ink);
-        font: 700 0.85rem "Courier New", monospace;
-    }
-    div[data-testid="stImage"] img {
-        border: 4px solid var(--market-gold);
-        box-shadow: 7px 7px 0 var(--market-red);
-    }
+    .market-rule { border-top: 3px solid var(--market-green); margin: 0.6rem 0 1.2rem; }
+    .market-note { color: #53675f; font-size: 0.96rem; }
     .stButton > button[kind="primary"] {
-        background: var(--market-red);
-        border: 2px solid var(--market-gold);
-        box-shadow: 4px 4px 0 var(--market-green);
+        background: var(--market-green);
+        border: 1px solid var(--market-green);
         color: white;
-        font-weight: 800;
+        font-weight: 700;
     }
+    .stButton > button[kind="primary"]:hover { background: var(--market-ink); border-color: var(--market-ink); }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-photo_column, title_column = st.columns([1, 3], gap="large", vertical_alignment="center")
-with photo_column:
-    st.image("https://upload.wikimedia.org/wikipedia/commons/a/a1/Harshad-Mehta.png", width=190)
-    st.markdown(
-        "[Photo: Soujanya raj, CC BY-SA 4.0](https://commons.wikimedia.org/wiki/File:Harshad-Mehta.png)"
-    )
-with title_column:
-    st.markdown('<div class="market-ticker">BSE // DALAL STREET // BULL RUN WATCH</div>', unsafe_allow_html=True)
-    st.title("The Big Bull")
-    st.subheader("Indian Stock Market Analyst & Advisor")
-    st.write("Fresh headlines. One stock to watch. Full-volume market theatrics.")
+st.markdown('<div class="market-kicker">India Equities / Daily Brief</div>', unsafe_allow_html=True)
+st.title("Market Bell")
+st.markdown('<div class="market-rule"></div>', unsafe_allow_html=True)
+st.markdown('<div class="market-note">Headlines in. A watchlist idea out.</div>', unsafe_allow_html=True)
 
 # Sidebar Configuration loading defaults from environment variables securely
 st.sidebar.header("Configuration")
@@ -93,6 +79,11 @@ sender_pwd = "".join(os.getenv("SENDER_PASSWORD", "").split())
 recipient_email = st.sidebar.text_input("Recipient Email", value=def_recipient).strip()
 
 # Web Scraping Helper
+class StockRecommendation(BaseModel):
+    stock_name: str = Field(description="The Indian-listed company or stock to watch")
+    description: str = Field(description="A concise explanation based only on the supplied news headlines")
+
+
 def scrape_indian_financial_news() -> str:
     url = "https://www.livemint.com/market/stock-market-news"
     headers = {
@@ -162,9 +153,11 @@ else:
 if model:
     stock_agent = Agent(
         model,
+        output_type=StockRecommendation,
         instructions=(
-            "You are an Indian stock analyst. Recommend one stock to watch in one cautious sentence, "
-            "based only on the supplied financial-news headlines. If they are insufficient, say so."
+            "You are an Indian stock analyst. Return one Indian-listed stock to watch and a concise "
+            "description based only on the supplied financial-news headlines. Do not invent supporting news. "
+            "If the headlines are insufficient, say so in the description."
         )
     )
 else:
@@ -198,9 +191,18 @@ if st.button("Generate Stock Recommendation", type="primary"):
                 st.error(f"Error generating recommendation: {e}")
 
 # Show recommendation if exists
+if (
+    'recommendation' in st.session_state
+    and not isinstance(st.session_state['recommendation'], StockRecommendation)
+):
+    del st.session_state['recommendation']
+
 if 'recommendation' in st.session_state:
-    st.info("### AI Stock Recommendation")
-    st.markdown(st.session_state['recommendation'])
+    recommendation = st.session_state['recommendation']
+    st.markdown('<div class="market-kicker">Stock to watch</div>', unsafe_allow_html=True)
+    st.header(recommendation.stock_name)
+    st.markdown("**Why it is on the watchlist**")
+    st.write(recommendation.description)
 
     # Send Email Option
     if st.button("Send Email Report"):
@@ -219,7 +221,8 @@ Hello,
 
 Here is your requested stock recommendation based on the latest Indian financial news:
 
-{st.session_state['recommendation']}
+Stock: {recommendation.stock_name}
+Why it is on the watchlist: {recommendation.description}
 
 Best regards,
 Your Financial Assistant Agent
